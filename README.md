@@ -27,7 +27,7 @@ python -m SimpleHTTPServer 9000
 
 See index.js for implementation.
 
-https://github.com/SebEynott/platformer-character-state/blob/master/js/index.js
+https://github.com/SebEynott/phaser-ladders/blob/master/js/index.js
 
 ## Demo
 

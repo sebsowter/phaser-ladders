@@ -1,8 +1,8 @@
 /**
- * Phaser player state, with ladders
+ * Phaser platformer, with ladders
  *
  * @author Seb Eynott
- * @github https://github.com/SebEynott/platformer-character-state
+ * https://github.com/SebEynott/phaser-ladders
  */
 
 /**

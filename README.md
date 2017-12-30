@@ -31,9 +31,9 @@ https://github.com/SebEynott/phaser-ladders/blob/master/js/index.js
 
 ## Demo
 
-![](https://sebeynott.github.io/phaser-ladders/images/screen.gif)
-
 https://sebeynott.github.io/phaser-ladders/
 
 Move: Arrow keys  
 Jump: W
+
+![](https://sebeynott.github.io/phaser-ladders/images/screen.gif)

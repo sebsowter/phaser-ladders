@@ -31,8 +31,10 @@ https://github.com/SebEynott/platformer-character-state/blob/master/js/index.js
 
 ## Demo
 
+https://sebeynott.github.io/phaser-ladders/images/screen.gif
+
 https://sebeynott.github.io/phaser-ladders/
 
-Movement: arrow keys
+Movement: Arrow keys
 
 Jump: W

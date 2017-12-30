@@ -35,6 +35,5 @@ https://github.com/SebEynott/phaser-ladders/blob/master/js/index.js
 
 https://sebeynott.github.io/phaser-ladders/
 
-Movement: Arrow keys
-
+Move: Arrow keys  
 Jump: W

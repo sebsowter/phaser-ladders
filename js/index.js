@@ -319,9 +319,10 @@ Player.prototype.updateState = function() {
         case PlayerState.JUMPING:
             if (this.isOnFloor()) {
                 this.stand();
-            } else if (this.isClimbing()) {
-                this.climb();
             }
+            //else if (this.isClimbing()) {
+            //    this.climb();
+            //}
             break;
         case PlayerState.WALKING:
             if (this.isJumping()) {

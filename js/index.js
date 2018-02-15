@@ -62,7 +62,7 @@ Game.prototype.init = function() {
     };
 
     // Set game scale
-    var scale = 4;
+    var scale = 2;
 
     this.game.scale.scaleMode = Phaser.ScaleManager.USER_SCALE;
     this.game.scale.setUserScale(scale, scale);

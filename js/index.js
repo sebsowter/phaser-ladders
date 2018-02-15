@@ -62,7 +62,7 @@ Game.prototype.init = function() {
     };
 
     // Set game scale
-    var scale = 2;
+    var scale = 4;
 
     this.game.scale.scaleMode = Phaser.ScaleManager.USER_SCALE;
     this.game.scale.setUserScale(scale, scale);
@@ -160,10 +160,7 @@ Game.prototype.handleCollide = function(sprite, tile) {
 
     switch (tile.index) {
         case 3:
-            if (overlapX <= 8) {
-                sprite.data.isOnLadderTop = true;
-            }
-            break;
+        case 9:
         default:
             break;
     }
@@ -174,9 +171,18 @@ Game.prototype.handleCollide = function(sprite, tile) {
  */
 Game.prototype.handleOverlap = function(sprite, tile) {
     var overlapX = Math.abs(sprite.position.x - tile.worldX - 8);
+    var overlapY = Math.abs(sprite.position.y - tile.worldY + 16);
 
     switch (tile.index) {
         case 3:
+            if (overlapX <= 8) {
+                sprite.data.isOnLadderTile = true;
+
+                if (overlapY === 0) {
+                    sprite.data.isOnLadderTop = true;
+                }
+            }
+            break;
         case 9:
             if (overlapX <= 8) {
                 sprite.data.isOnLadderTile = true;
@@ -328,6 +334,7 @@ Player.prototype.updateState = function() {
             if (this.isJumping()) {
                 this.jump();
             } else if (this.isClimbing()) {
+                //console.log('isClimbing');
                 this.climb();
             } else if (this.isOnLadder()) {
                 this.ladder();
@@ -477,15 +484,27 @@ Player.prototype.isCrouching = function() {
 
 // Check if climbing
 Player.prototype.isClimbing = function() {
-    return (this.isOnLadderTile() && !this.isOnLadderTop()
-            && (this.keys.up.isDown || this.keys.down.isDown)
-            && !(this.isOnFloor() && this.keys.down.isDown))
-        || (this.isOnLadderTop() && this.keys.down.isDown);
+    return this.isTryingToClimbUp() || this.isTryingToClimbDown() || this.isTryingToClimb();
+};
+
+// Check if on ladder
+Player.prototype.isTryingToClimb = function() {
+    return this.isOnLadder() && (this.keys.up.isDown || this.keys.down.isDown);
+};
+
+// Check if on ladder
+Player.prototype.isTryingToClimbDown = function() {
+    return this.isOnLadderTop() && this.keys.down.isDown;
+};
+
+// Check if on ladder
+Player.prototype.isTryingToClimbUp = function() {
+    return this.isOnLadderTile() && this.isOnFloor() && !this.isOnLadderTop() && this.keys.up.isDown;
 };
 
 // Check if on ladder
 Player.prototype.isOnLadder = function() {
-    return this.isOnLadderTile() && !this.isOnFloor();
+    return this.isOnLadderTile() && !this.isOnFloor() && !this.isOnLadderTop();
 };
 
 // Check if touching the floor

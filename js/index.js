@@ -30,6 +30,7 @@ var PlayerState = {
     CROUCHING: 'crouching',
     JUMPING: 'jumping',
     LADDER: 'ladder',
+    FALLING: 'falling',
     CLIMBING: 'climbing'
 };
 
@@ -156,8 +157,6 @@ Game.prototype.update = function() {
  * @method handleCollide
  */
 Game.prototype.handleCollide = function(sprite, tile) {
-    var overlapX = Math.abs(sprite.position.x - tile.worldX - 8);
-
     switch (tile.index) {
         case 3:
         case 9:
@@ -178,7 +177,7 @@ Game.prototype.handleOverlap = function(sprite, tile) {
             if (overlapX <= 8) {
                 sprite.data.isOnLadderTile = true;
 
-                if (overlapY === 0) {
+                if (overlapY <= 2) {
                     sprite.data.isOnLadderTop = true;
                 }
             }
@@ -218,7 +217,6 @@ Game.prototype.checkTile = function(tile) {
                 tile.collideLeft = false;
                 tile.collideRight = false;
                 //tile.alpha = 0.8;
-
                 //this.layerMain.dirty = true;
             } else {
                 tile.collideUp = true;
@@ -226,7 +224,6 @@ Game.prototype.checkTile = function(tile) {
                 tile.collideLeft = true;
                 tile.collideRight = true;
                 //tile.alpha = 0.3;
-
                 //this.layerMain.dirty = true;
             }
             break;
@@ -258,6 +255,7 @@ Player = function(sprite, keys) {
     this.speed = 100;
     this.strength = 0.1;
     this.state = PlayerState.STANDING;
+    this.timer = null;
     this.sprite = sprite;
     this.sprite.health = 1;
     this.sprite.data.isOnLadderTop = false;
@@ -266,6 +264,7 @@ Player = function(sprite, keys) {
     this.sprite.animations.add('stand', [0]);
     this.sprite.animations.add('walk', [0, 1, 2, 1], 12, true);
     this.sprite.animations.add('jump', [2]);
+    this.sprite.animations.add('fall', [2]);
     this.sprite.animations.add('crouch', [3]);
     this.sprite.animations.add('climb', [4, 5], 12, true);
     this.sprite.animations.add('ladder', [4]);
@@ -309,6 +308,13 @@ Player.prototype.update = function() {
  */
 Player.prototype.updateState = function() {
     switch (this.state) {
+        case PlayerState.FALLING:
+            if (this.isClimbing()) {
+                this.climb();
+            } else if (this.isOnFloor()) {
+                this.stand();
+            }
+            break;
         case PlayerState.STANDING:
             if (this.isJumping()) {
                 this.jump();
@@ -320,6 +326,8 @@ Player.prototype.updateState = function() {
                 this.ladder();
             } else if (this.isCrouching()) {
                 this.crouch();
+            } else if (this.isFalling()) {
+                this.fall();
             }
             break;
         case PlayerState.JUMPING:
@@ -340,6 +348,8 @@ Player.prototype.updateState = function() {
                 this.ladder();
             } else if (!this.isWalking()) {
                 this.stand();
+            } else if (this.isFalling()) {
+                this.fall();
             }
             break;
         case PlayerState.CLIMBING:
@@ -357,7 +367,7 @@ Player.prototype.updateState = function() {
             } else if (this.isClimbing()) {
                 this.climb();
             } else if (!this.isOnLadder()) {
-                this.stand();
+                this.fall();
             }
             break;
         case PlayerState.CROUCHING:
@@ -367,6 +377,8 @@ Player.prototype.updateState = function() {
                 this.climb();
             } else if (!this.isCrouching()) {
                 this.stand();
+            } else if (this.isFalling()) {
+                this.fall();
             }
             break;
         default:
@@ -385,9 +397,8 @@ Player.prototype.updateVelocity = function() {
     this.sprite.scale.x = this.facing;
 
     switch (this.state) {
+        case PlayerState.FALLING:
         case PlayerState.JUMPING:
-            this.sprite.body.velocity.x = directionX * this.speed;
-            break;
         case PlayerState.WALKING:
             this.sprite.body.velocity.x = directionX * this.speed;
             break;
@@ -400,6 +411,9 @@ Player.prototype.updateVelocity = function() {
             break;
         case PlayerState.STANDING:
         case PlayerState.CROUCHING:
+            //this.sprite.body.velocity.x = 0;
+            //this.sprite.body.velocity.y = 0;
+            break;
         default:
             break;
     }
@@ -426,6 +440,14 @@ Player.prototype.walk = function() {
     this.sprite.animations.play('walk');
 };
 
+// Fall
+Player.prototype.fall = function() {
+    this.setState(PlayerState.FALLING);
+    this.sprite.body.allowGravity = true;
+    this.sprite.body.setSize(16, 24, 0, 8);
+    this.sprite.animations.play('fall');
+};
+
 // Jump
 Player.prototype.jump = function() {
     this.setState(PlayerState.JUMPING);
@@ -433,6 +455,7 @@ Player.prototype.jump = function() {
     this.sprite.body.velocity.y = -224;
     this.sprite.body.setSize(16, 24, 0, 8);
     this.sprite.animations.play('jump');
+    this.timer = this.sprite.game.time.events.add(Phaser.Timer.SECOND * 0.5, this.fall, this);
 };
 
 // Climb
@@ -480,6 +503,11 @@ Player.prototype.isJumping = function() {
 // Check if crouching
 Player.prototype.isCrouching = function() {
     return this.keys.down.isDown;
+};
+
+// Check if falling
+Player.prototype.isFalling = function() {
+    return !this.isOnFloor();
 };
 
 // Check if climbing

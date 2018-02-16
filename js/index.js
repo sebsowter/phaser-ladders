@@ -26,11 +26,11 @@ var PhaserGame = (function() {
 // Define the various states that the player can be in
 var PlayerState = {
     STANDING: 'standing',
+    FALLING: 'falling',
+    LADDER: 'ladder',
     WALKING: 'walking',
     CROUCHING: 'crouching',
     JUMPING: 'jumping',
-    LADDER: 'ladder',
-    FALLING: 'falling',
     CLIMBING: 'climbing'
 };
 
@@ -157,12 +157,7 @@ Game.prototype.update = function() {
  * @method handleCollide
  */
 Game.prototype.handleCollide = function(sprite, tile) {
-    switch (tile.index) {
-        case 3:
-        case 9:
-        default:
-            break;
-    }
+
 };
 
 /**
@@ -334,15 +329,11 @@ Player.prototype.updateState = function() {
             if (this.isOnFloor()) {
                 this.stand();
             }
-            //else if (this.isClimbing()) {
-            //    this.climb();
-            //}
             break;
         case PlayerState.WALKING:
             if (this.isJumping()) {
                 this.jump();
             } else if (this.isClimbing()) {
-                //console.log('isClimbing');
                 this.climb();
             } else if (this.isOnLadder()) {
                 this.ladder();
@@ -455,7 +446,7 @@ Player.prototype.jump = function() {
     this.sprite.body.velocity.y = -224;
     this.sprite.body.setSize(16, 24, 0, 8);
     this.sprite.animations.play('jump');
-    this.timer = this.sprite.game.time.events.add(Phaser.Timer.SECOND * 0.5, this.fall, this);
+    this.sprite.game.time.events.add(Phaser.Timer.SECOND * 0.5, this.fall, this);
 };
 
 // Climb
@@ -492,17 +483,17 @@ Player.prototype.crouch = function() {
 
 // Check if walking
 Player.prototype.isWalking = function() {
-    return this.keys.left.isDown || this.keys.right.isDown;
+    return this.isOnFloor() && (this.keys.left.isDown || this.keys.right.isDown);
 };
 
 // Check if jumping
 Player.prototype.isJumping = function() {
-    return this.keys.jump.isDown && (this.isOnFloor() || this.isOnLadderTile());
+    return (this.isOnFloor() || this.isOnLadderTile()) && this.keys.jump.isDown;
 };
 
 // Check if crouching
 Player.prototype.isCrouching = function() {
-    return this.keys.down.isDown;
+    return this.isOnFloor() && this.keys.down.isDown;
 };
 
 // Check if falling
@@ -548,4 +539,31 @@ Player.prototype.isOnLadderTile = function() {
 // Check if ladder in range
 Player.prototype.isOnLadderTop = function() {
     return this.sprite.data.isOnLadderTop;
+};
+
+/**
+ * @method handleOverlap
+ */
+Game.prototype.handleOverlap = function(sprite, tile) {
+    var overlapX = Math.abs(sprite.position.x - tile.worldX - 8);
+    var overlapY = Math.abs(sprite.position.y - tile.worldY + 16);
+
+    switch (tile.index) {
+        case 3:
+            if (overlapX <= 8) {
+                sprite.data.isOnLadderTile = true;
+
+                if (overlapY <= 2) {
+                    sprite.data.isOnLadderTop = true;
+                }
+            }
+            break;
+        case 9:
+            if (overlapX <= 8) {
+                sprite.data.isOnLadderTile = true;
+            }
+            break;
+        default:
+            break;
+    }
 };

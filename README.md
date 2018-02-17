@@ -2,9 +2,11 @@
 
 ## Introduction
 
-Ladders for a Phaser platform game.
+What is the best way of implementing ladders in a Phaser platformer?
 
-https://phaser.io/
+This project is an attempt to answer this question.
+
+https://phaser.io
 
 ## Setup
 
@@ -36,4 +38,5 @@ https://sebeynott.github.io/phaser-ladders/
 Move: Arrow keys  
 Jump: W
 
-![](https://sebeynott.github.io/phaser-ladders/images/screen.gif)
+!['phaser-ladders'](https://sebeynott.github.io/phaser-ladders/images/screen.gif)
+

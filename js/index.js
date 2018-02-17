@@ -1,5 +1,5 @@
 /**
- * Phaser platformer, with ladders
+ * Phaser platformer prototype, with ladders
  *
  * @author Seb Eynott
  * https://github.com/SebEynott/phaser-ladders
@@ -9,7 +9,7 @@
  * Container
  *
  * @method PhaserGame
- * @return {Object} public methods
+ * @return { Object } public methods
  */
 var PhaserGame = (function() {
     function init(elementId) {
@@ -21,6 +21,7 @@ var PhaserGame = (function() {
     return {
         init: init
     };
+
 })();
 
 // Define the various states that the player can be in
@@ -28,9 +29,9 @@ var PlayerState = {
     STANDING: 'standing',
     FALLING: 'falling',
     LADDER: 'ladder',
-    WALKING: 'walking',
     CROUCHING: 'crouching',
     JUMPING: 'jumping',
+    WALKING: 'walking',
     CLIMBING: 'climbing'
 };
 
@@ -38,7 +39,6 @@ var PlayerState = {
  * Game class
  *
  * @constructor Game
- * @param {Object} game
  */
 Game = function() {
     this.debug = false;
@@ -126,6 +126,7 @@ Game.prototype.createPlayer = function() {
 
     // Create player sprite
     var sprite = this.game.add.sprite(2 * 16, 11 * 16, 'player');
+    console.log('sprite', sprite.game);
 
     // Create player
     this.player = new Player(sprite, this.keys);
@@ -207,19 +208,9 @@ Game.prototype.checkTile = function(tile) {
     switch (tile.index) {
         case 3:
             if (this.player.state === PlayerState.CLIMBING || this.player.state === PlayerState.LADDER) {
-                tile.collideUp = false;
-                tile.collideDown = false;
-                tile.collideLeft = false;
-                tile.collideRight = false;
-                //tile.alpha = 0.8;
-                //this.layerMain.dirty = true;
+                tile.setCollision(false, false, false, false);
             } else {
-                tile.collideUp = true;
-                tile.collideDown = true;
-                tile.collideLeft = true;
-                tile.collideRight = true;
-                //tile.alpha = 0.3;
-                //this.layerMain.dirty = true;
+                tile.setCollision(true, true, true, true);
             }
             break;
         default:
@@ -404,6 +395,7 @@ Player.prototype.updateVelocity = function() {
         case PlayerState.CROUCHING:
             //this.sprite.body.velocity.x = 0;
             //this.sprite.body.velocity.y = 0;
+            //this.sprite.y = (Math.floor(this.sprite.y / 16) * 16) + 24;
             break;
         default:
             break;
@@ -420,6 +412,7 @@ Player.prototype.stand = function() {
     this.sprite.body.allowGravity = true;
     this.sprite.body.setSize(16, 24, 0, 8);
     this.sprite.body.velocity.x = 0;
+    this.sprite.body.velocity.y = 0;
     this.sprite.animations.play('stand');
 };
 
@@ -542,28 +535,12 @@ Player.prototype.isOnLadderTop = function() {
 };
 
 /**
- * @method handleOverlap
+ * @method getCurrentTile
  */
-Game.prototype.handleOverlap = function(sprite, tile) {
-    var overlapX = Math.abs(sprite.position.x - tile.worldX - 8);
-    var overlapY = Math.abs(sprite.position.y - tile.worldY + 16);
-
-    switch (tile.index) {
-        case 3:
-            if (overlapX <= 8) {
-                sprite.data.isOnLadderTile = true;
-
-                if (overlapY <= 2) {
-                    sprite.data.isOnLadderTop = true;
-                }
-            }
-            break;
-        case 9:
-            if (overlapX <= 8) {
-                sprite.data.isOnLadderTile = true;
-            }
-            break;
-        default:
-            break;
-    }
+Player.prototype.getCurrentTile = function() {
+    var map = this.sprite.game.world.children[0].map;
+    var x = Math.floor(this.sprite.x / 16);
+    var y = Math.floor(this.sprite.y / 16);
+    
+    return map.getCurrentTile(x, y);
 };

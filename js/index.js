@@ -526,21 +526,76 @@ Player.prototype.isOnFloor = function() {
 
 // Check if ladder in range
 Player.prototype.isOnLadderTile = function() {
-    return this.sprite.data.isOnLadderTile;
+    var tile = this.getOverlapTile();
+
+    if (tile && tile.index === 3 || tile.index === 9) {
+        var overlapX = Math.abs(this.sprite.position.x - tile.worldX - 8);
+
+        if (overlapX <= 8) {
+            return true;
+        }
+    }
+
+    return false;
 };
 
 // Check if ladder in range
 Player.prototype.isOnLadderTop = function() {
-    return this.sprite.data.isOnLadderTop;
+    var tile = this.getTileBelow();
+    //if (tile)
+      //  console.log(tile.index);
+
+    if (tile && tile.index === 3) {
+        var overlapX = Math.abs(this.sprite.position.x - tile.worldX - 8);
+        var overlapY = Math.abs(this.sprite.position.y - tile.worldY + 16);
+        console.log(overlapY);
+
+        if (overlapX <= 8 && overlapY <= 2) {
+            return true;
+        }
+    }
+
+    return false;
 };
 
 /**
  * @method getCurrentTile
  */
-Player.prototype.getCurrentTile = function() {
-    var map = this.sprite.game.world.children[0].map;
+Player.prototype.getOverlapTile = function() {
     var x = Math.floor(this.sprite.x / 16);
     var y = Math.floor(this.sprite.y / 16);
     
-    return map.getCurrentTile(x, y);
+    return this.getTile(x, y);
+};
+
+/**
+ * @method getCurrentTile
+ */
+Player.prototype.getTileBelowIndex = function() {
+    var tile = this.getTileBelow();
+
+    if (tile) {
+        return tile.index;
+    }
+
+    return;
+};
+
+/**
+ * @method getCurrentTile
+ */
+Player.prototype.getTileBelow = function() {
+    var x = Math.floor(this.sprite.x / 16);
+    var y = Math.floor(this.sprite.y / 16) + 1;
+
+    return this.getTile(x, y);
+};
+
+/**
+ * @method getTile
+ */
+Player.prototype.getTile = function(x, y) {
+    var map = this.sprite.game.world.children[0].map;
+
+    return map.getTile(x, y);
 };

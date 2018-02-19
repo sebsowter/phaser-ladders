@@ -18,7 +18,6 @@ php -S localhost:9000
 
 Windows (command prompt):
 python -m SimpleHTTPServer 9000
-
 ```
 
 3. Preview at http://localhost:9000

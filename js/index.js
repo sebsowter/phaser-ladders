@@ -35,10 +35,24 @@ var PlayerState = {
     CLIMBING: 'climbing'
 };
 
+// Store in the indexes of important tiles
+var Tiles = {
+    FLOOR: 2,
+    BRICK: 8,
+    LADDER: 9,
+    LADDER_TOP: 3
+};
+
+/*
+ * --------------------------------------------------------------------------------
+ * Game
+ * --------------------------------------------------------------------------------
+ */
+
 /**
- * Game class
+ * Game
  *
- * @constructor Game
+ * @constructor
  */
 Game = function() {
     this.debug = false;
@@ -114,9 +128,9 @@ Game.prototype.createLevel = function() {
     this.layerMain.debug = this.debug;
 
     // Set collision tiles
-    this.map.setCollision(2, true, 'layerMain');
-    this.map.setCollision(3, true, 'layerMain');
-    this.map.setCollision(8, true, 'layerMain');
+    this.map.setCollision(Tiles.FLOOR, true, 'layerMain');
+    this.map.setCollision(Tiles.BRICK, true, 'layerMain');
+    this.map.setCollision(Tiles.LADDER_TOP, true, 'layerMain');
 };
 
 /**
@@ -126,7 +140,6 @@ Game.prototype.createPlayer = function() {
 
     // Create player sprite
     var sprite = this.game.add.sprite(2 * 16, 11 * 16, 'player');
-    console.log('sprite', sprite.game);
 
     // Create player
     this.player = new Player(sprite, this.keys);
@@ -145,72 +158,46 @@ Game.prototype.createPlayer = function() {
  * @method update
  */
 Game.prototype.update = function() {
-    this.player.willUpdate();
-    this.checkTiles();
 
-    this.game.physics.arcade.overlap(this.player.sprite, this.layerMain, this.handleOverlap);
-    this.game.physics.arcade.collide(this.player.sprite, this.layerMain, this.handleCollide);
+    // Call player preUpdate
+    this.player.preUpdate();
 
+    // Call physics overlap and collision
+    this.game.physics.arcade.overlap(this.player.sprite, this.layerMain, this.handleOverlap.bind(this));
+    this.game.physics.arcade.collide(this.player.sprite, this.layerMain, this.handleCollide.bind(this));
+
+    // Call player update
     this.player.update();
 }
 
 /**
  * @method handleCollide
+ * @param { Phaser.Sprite } sprite
+ * @param { Phaser.Tile } tile
  */
 Game.prototype.handleCollide = function(sprite, tile) {
-
+    // handleCollide
 };
 
 /**
  * @method handleOverlap
+ * @param { Phaser.Sprite } sprite
+ * @param { Phaser.Tile } tile
  */
 Game.prototype.handleOverlap = function(sprite, tile) {
-    var overlapX = Math.abs(sprite.position.x - tile.worldX - 8);
-    var overlapY = Math.abs(sprite.position.y - tile.worldY + 16);
-
+    var delta = new Phaser.Point(
+        Math.abs(sprite.position.x - tile.worldX - 8),
+        Math.abs(sprite.position.y - tile.worldY + 16)
+    );
+    
     switch (tile.index) {
-        case 3:
-            if (overlapX <= 8) {
-                sprite.data.isOnLadderTile = true;
-
-                if (overlapY <= 2) {
-                    sprite.data.isOnLadderTop = true;
-                }
+        case Tiles.LADDER_TOP:
+            if (delta.x <= 8 && delta.y <= 2) {
+                sprite.data.isOnLadderTop = true;
             }
-            break;
-        case 9:
-            if (overlapX <= 8) {
+        case Tiles.LADDER:
+            if (delta.x <= 8) {
                 sprite.data.isOnLadderTile = true;
-            }
-            break;
-        default:
-            break;
-    }
-};
-
-/**
- * @method checkTiles
- */
-Game.prototype.checkTiles = function() {
-    for (var x = 0; x < this.map.width; x++) {
-        for (var y = 0; y < this.map.height; y++) {
-            var tile = this.map.getTile(x, y);
-
-            this.checkTile(tile);
-        }
-    }
-};
-
-/**
- * @method checkTile
- */
-Game.prototype.checkTile = function(tile) {
-    switch (tile.index) {
-        case 3:
-            if (this.player.state === PlayerState.CLIMBING || this.player.state === PlayerState.LADDER) {
-                tile.setCollision(false, false, false, false);
-            } else {
-                tile.setCollision(true, true, true, true);
             }
             break;
         default:
@@ -224,29 +211,59 @@ Game.prototype.checkTile = function(tile) {
 Game.prototype.render = function() {
     if (this.debug) {
         this.game.debug.body(this.player.sprite);
-        //this.game.debug.text(this.game.time.suggestedFps, 32, 32);
     }
 };
 
+/*
+ * --------------------------------------------------------------------------------
+ * Player
+ * --------------------------------------------------------------------------------
+ */
+
 /**
- * Player class
+ * Player
  *
- * @constructor Player
- * @param {Object} sprite
- * @param {Object} keys
+ * @constructor
+ * @param { Phaser.Sprite } sprite
+ * @param { Object } keys
  */
 Player = function(sprite, keys) {
+
+    // Keys
     this.keys = keys;
+
+    // Direction the player is facing (1 or -1)
     this.facing = 1;
-    this.speed = 100;
+
+    // Walking speed of the player
+    this.speed = 96;
+
+    // Climbing speed of the player
+    this.speedClimbing = 64;
+
+    // Strength
     this.strength = 0.1;
+
+    // Current state
     this.state = PlayerState.STANDING;
-    this.timer = null;
+
+    // Jump timer
+    this.jumpTimer = null;
+
+    // Sprite
     this.sprite = sprite;
+
+    // Give sprite full health
     this.sprite.health = 1;
+
+    // Set anchor to center
+    this.sprite.anchor.setTo(0.5, 0.5);
+
+    // Store tile overlaps in sprite data
     this.sprite.data.isOnLadderTop = false;
     this.sprite.data.isOnLadderTile = false;
-    this.sprite.anchor.setTo(0.5, 0.5);
+
+    // Animations
     this.sprite.animations.add('stand', [0]);
     this.sprite.animations.add('walk', [0, 1, 2, 1], 12, true);
     this.sprite.animations.add('jump', [2]);
@@ -260,23 +277,22 @@ Player = function(sprite, keys) {
  * @method initBody
  */
 Player.prototype.initBody = function() {
-    this.sprite.body.setSize(16, 24, 0, 8);
+    this.setBodySize();
+
     this.sprite.body.bounce.y = 0;
     this.sprite.body.collideWorldBounds = true;
 };
 
-/**
- * @method setState
+/*
+ * --------------------------------------------------------------------------------
+ * Update
+ * --------------------------------------------------------------------------------
  */
-Player.prototype.setState = function(state) {
-    console.log('[PlayerState]: ' + state);
-    this.state = state;
-};
 
 /**
- * @method willUpdate
+ * @method preUpdate
  */
-Player.prototype.willUpdate = function() {
+Player.prototype.preUpdate = function() {
     this.sprite.data.isOnLadderTile = false;
     this.sprite.data.isOnLadderTop = false;
 };
@@ -293,74 +309,76 @@ Player.prototype.update = function() {
  * @method updateState
  */
 Player.prototype.updateState = function() {
+
+    // Check for state changes
     switch (this.state) {
         case PlayerState.FALLING:
             if (this.isClimbing()) {
-                this.climb();
+                this.setState(PlayerState.CLIMBING);
             } else if (this.isOnFloor()) {
-                this.stand();
+                this.setState(PlayerState.STANDING);
             }
             break;
         case PlayerState.STANDING:
             if (this.isJumping()) {
-                this.jump();
+                this.setState(PlayerState.JUMPING);
             } else if (this.isWalking()) {
-                this.walk();
+                this.setState(PlayerState.WALKING);
             } else if (this.isClimbing()) {
-                this.climb();
+                this.setState(PlayerState.CLIMBING);
             } else if (this.isOnLadder()) {
-                this.ladder();
+                this.setState(PlayerState.LADDER);
             } else if (this.isCrouching()) {
-                this.crouch();
+                this.setState(PlayerState.CROUCHING);
             } else if (this.isFalling()) {
-                this.fall();
+                this.setState(PlayerState.FALLING);
             }
             break;
         case PlayerState.JUMPING:
             if (this.isOnFloor()) {
-                this.stand();
+                this.setState(PlayerState.STANDING);
             }
             break;
         case PlayerState.WALKING:
             if (this.isJumping()) {
-                this.jump();
+                this.setState(PlayerState.JUMPING);
             } else if (this.isClimbing()) {
-                this.climb();
+                this.setState(PlayerState.CLIMBING);
             } else if (this.isOnLadder()) {
-                this.ladder();
-            } else if (!this.isWalking()) {
-                this.stand();
+                this.setState(PlayerState.LADDER);
             } else if (this.isFalling()) {
-                this.fall();
+                this.setState(PlayerState.FALLING);
+            } else if (!this.isWalking()) {
+                this.setState(PlayerState.STANDING);
             }
             break;
         case PlayerState.CLIMBING:
             if (this.isJumping()) {
-                this.jump();
+                this.setState(PlayerState.JUMPING);
             } else if (!this.isClimbing() && this.isOnLadder()) {
-                this.ladder();
+                this.setState(PlayerState.LADDER);
             } else if (!this.isClimbing()) {
-                this.stand();
+                this.setState(PlayerState.STANDING);
             }
             break;
         case PlayerState.LADDER:
             if (this.isJumping()) {
-                this.jump();
+                this.setState(PlayerState.JUMPING);
             } else if (this.isClimbing()) {
-                this.climb();
+                this.setState(PlayerState.CLIMBING);
             } else if (!this.isOnLadder()) {
-                this.fall();
+                this.setState(PlayerState.FALLING);
             }
             break;
         case PlayerState.CROUCHING:
             if (this.isJumping()) {
-                this.jump();
+                this.setState(PlayerState.JUMPING);
             } else if (this.isClimbing()) {
-                this.climb();
+                this.setState(PlayerState.CLIMBING);
             } else if (!this.isCrouching()) {
-                this.stand();
+                this.setState(PlayerState.STANDING);
             } else if (this.isFalling()) {
-                this.fall();
+                this.setState(PlayerState.FALLING);
             }
             break;
         default:
@@ -372,30 +390,94 @@ Player.prototype.updateState = function() {
  * @method updateVelocity
  */
 Player.prototype.updateVelocity = function() {
-    var directionX = this.keys.left.isDown ? -1 : this.keys.right.isDown ? 1 : 0;
-    var directionY = this.keys.up.isDown ? -1 : this.keys.down.isDown ? 1 : 0;
+    var direction = new Phaser.Point(
+        this.keys.left.isDown ? -1 : this.keys.right.isDown ? 1 : 0,
+        this.keys.up.isDown ? -1 : this.keys.down.isDown ? 1 : 0
+    );
 
-    this.facing = directionX === 0 ? this.facing : directionX;
-    this.sprite.scale.x = this.facing;
+    // Set direction
+    this.sprite.scale.x = this.facing = direction.x === 0 ? this.facing : direction.x;
 
+    // Update velocity
     switch (this.state) {
-        case PlayerState.FALLING:
-        case PlayerState.JUMPING:
-        case PlayerState.WALKING:
-            this.sprite.body.velocity.x = directionX * this.speed;
-            break;
         case PlayerState.CLIMBING:
-            this.sprite.x = (Math.floor(this.sprite.x / 16) * 16) + 8;
-            this.sprite.body.velocity.y = directionY * this.speed;
+            this.sprite.body.velocity.x = 0;
+            this.sprite.body.velocity.y = direction.y * this.speedClimbing;
+            this.sprite.x = this.getLockX(this.sprite.x);
             break;
         case PlayerState.LADDER:
-            this.sprite.x = (Math.floor(this.sprite.x / 16) * 16) + 8;
+            this.sprite.body.velocity.x = 0;
+            this.sprite.body.velocity.y = 0;
+            this.sprite.x = this.getLockX(this.sprite.x);
+            break;
+        case PlayerState.WALKING:
+            this.sprite.body.velocity.y = 0;
+        case PlayerState.FALLING:
+        case PlayerState.JUMPING:
+            this.sprite.body.velocity.x = direction.x * this.speed;
             break;
         case PlayerState.STANDING:
         case PlayerState.CROUCHING:
-            //this.sprite.body.velocity.x = 0;
-            //this.sprite.body.velocity.y = 0;
-            //this.sprite.y = (Math.floor(this.sprite.y / 16) * 16) + 24;
+            this.sprite.body.velocity.x = 0;
+            this.sprite.body.velocity.y = 0;
+            break;
+        default:
+            break;
+    }
+};
+
+/*
+ * --------------------------------------------------------------------------------
+ * Setters
+ * --------------------------------------------------------------------------------
+ */
+
+/**
+ * @method setState
+ * @param { String } state
+ */
+Player.prototype.setState = function(state) {
+    console.log('[PlayerState]: ' + state);
+
+    this.state = state;
+
+    switch (this.state) {
+        case PlayerState.FALLING:
+            this.setBodySize();
+            this.setOnLadder(false);
+            this.setAnimation('fall');
+            break;
+        case PlayerState.STANDING:
+            this.setBodySize();
+            this.setOnLadder(false);
+            this.setAnimation('stand');
+            this.endJump();
+            break;
+        case PlayerState.JUMPING:
+            this.setBodySize();
+            this.setOnLadder(false);
+            this.setAnimation('jump');
+            this.startJump();
+            break;
+        case PlayerState.WALKING:
+            this.setBodySize();
+            this.setOnLadder(false);
+            this.setAnimation('walk');
+            break;
+        case PlayerState.CLIMBING:
+            this.setBodySize();
+            this.setOnLadder(true);
+            this.setAnimation('climb');
+            break;
+        case PlayerState.LADDER:
+            this.setBodySize();
+            this.setOnLadder(true);
+            this.setAnimation('ladder');
+            break;
+        case PlayerState.CROUCHING:
+            this.setBodySize('small');
+            this.setOnLadder(false);
+            this.setAnimation('crouch');
             break;
         default:
             break;
@@ -403,199 +485,198 @@ Player.prototype.updateVelocity = function() {
 };
 
 /**
- * Actions
+ * @method setBodySize
+ * @param { String } size
  */
+Player.prototype.setBodySize = function(size = 'large') {
+    switch (size) {
 
-// Stand
-Player.prototype.stand = function() {
-    this.setState(PlayerState.STANDING);
-    this.sprite.body.allowGravity = true;
-    this.sprite.body.setSize(16, 24, 0, 8);
-    this.sprite.body.velocity.x = 0;
-    this.sprite.body.velocity.y = 0;
-    this.sprite.animations.play('stand');
-};
+        // For crouching and crawling
+        case 'small':
+            this.sprite.body.setSize(16, 16, 0, 16);
+            break;
 
-// Walk
-Player.prototype.walk = function() {
-    this.setState(PlayerState.WALKING);
-    this.sprite.body.allowGravity = true;
-    this.sprite.body.setSize(16, 24, 0, 8);
-    this.sprite.animations.play('walk');
-};
-
-// Fall
-Player.prototype.fall = function() {
-    this.setState(PlayerState.FALLING);
-    this.sprite.body.allowGravity = true;
-    this.sprite.body.setSize(16, 24, 0, 8);
-    this.sprite.animations.play('fall');
-};
-
-// Jump
-Player.prototype.jump = function() {
-    this.setState(PlayerState.JUMPING);
-    this.sprite.body.allowGravity = true;
-    this.sprite.body.velocity.y = -224;
-    this.sprite.body.setSize(16, 24, 0, 8);
-    this.sprite.animations.play('jump');
-    this.sprite.game.time.events.add(Phaser.Timer.SECOND * 0.5, this.fall, this);
-};
-
-// Climb
-Player.prototype.climb = function() {
-    this.setState(PlayerState.CLIMBING);
-    this.sprite.body.allowGravity = false;
-    this.sprite.body.setSize(16, 24, 0, 8);
-    this.sprite.body.velocity.x = 0;
-    this.sprite.animations.play('climb');
-};
-
-// Ladder
-Player.prototype.ladder = function() {
-    this.setState(PlayerState.LADDER);
-    this.sprite.body.allowGravity = false;
-    this.sprite.body.setSize(16, 24, 0, 8);
-    this.sprite.body.velocity.x = 0;
-    this.sprite.body.velocity.y = 0;
-    this.sprite.animations.play('ladder');
-};
-
-// Crouch
-Player.prototype.crouch = function() {
-    this.setState(PlayerState.CROUCHING);
-    this.sprite.body.allowGravity = true;
-    this.sprite.body.setSize(16, 16, 0, 16);
-    this.sprite.body.velocity.x = 0;
-    this.sprite.animations.play('crouch');
+        // Default body size
+        case 'large':
+        default:
+            this.sprite.body.setSize(16, 24, 0, 8);
+            break;
+    }
 };
 
 /**
- * Checkers
+ * @method setGravity
+ * @param { Boolean } bool
+ */
+Player.prototype.setGravity = function(bool) {
+    this.sprite.body.allowGravity = bool;
+};
+
+/**
+ * @method setAnimation
+ * @param { String } anim
+ */
+Player.prototype.setAnimation = function(anim) {
+    this.sprite.animations.play(anim);
+};
+
+/**
+ * @method setOnLadder
+ * @param { Boolean } bool
+ */
+Player.prototype.setOnLadder = function(bool) {
+    this.setGravity(!bool);
+    this.setLadderTopsCollide(!bool);
+};
+
+/**
+ * @method setLadderTopsCollide
+ * @param { Boolean } bool
+ */
+Player.prototype.setLadderTopsCollide = function(bool) {
+    var map = this.sprite.game.world.children[0].map;
+
+    this.setTileCollides(map, Tiles.LADDER_TOP, bool);
+};
+
+/**
+ * @method setTileCollides
+ * @param { Phaser.Tilemap } map
+ * @param { Number } index
+ * @param { Boolean } bool
+ */
+Player.prototype.setTileCollides = function(map, index, bool) {
+    for (var x = 0; x < map.width; x++) {
+        for (var y = 0; y < map.height; y++) {
+            var tile = map.getTile(x, y);
+
+            if (tile.index === index) {
+                tile.setCollision(bool, bool, bool, bool);
+            }
+        }
+    }
+};
+
+/*
+ * --------------------------------------------------------------------------------
+ * Getters
+ * --------------------------------------------------------------------------------
  */
 
-// Check if walking
+/**
+ * @method getLockX
+ * @param { Number } x
+ */
+Player.prototype.getLockX = function(x) {
+    return Math.floor(x / 16) * 16 + 8;
+};
+
+/*
+ * --------------------------------------------------------------------------------
+ * Jump
+ * --------------------------------------------------------------------------------
+ */
+
+/**
+ * @method startJump
+ */
+Player.prototype.startJump = function() {
+    this.sprite.body.velocity.y = -224;
+    this.jumpTimer = this.sprite.game.time.events.add(Phaser.Timer.SECOND * 0.5, function() {
+        this.setState(PlayerState.FALLING);
+    }, this);
+};
+
+/**
+ * @method endJump
+ */
+Player.prototype.endJump = function() {
+     this.sprite.game.time.events.remove(this.jumpTimer);
+};
+
+/*
+ * --------------------------------------------------------------------------------
+ * Check state
+ * --------------------------------------------------------------------------------
+ */
+
+/**
+ * @method isWalking
+ * @return { Boolean }
+ */
 Player.prototype.isWalking = function() {
     return this.isOnFloor() && (this.keys.left.isDown || this.keys.right.isDown);
 };
 
-// Check if jumping
+/**
+ * @method isJumping
+ * @return { Boolean }
+ */
 Player.prototype.isJumping = function() {
-    return (this.isOnFloor() || this.isOnLadderTile()) && this.keys.jump.isDown;
+    return (this.isOnFloor() || this.sprite.data.isOnLadderTile) && this.keys.jump.isDown;
 };
 
-// Check if crouching
+/**
+ * @method isCrouching
+ * @return { Boolean }
+ */
 Player.prototype.isCrouching = function() {
     return this.isOnFloor() && this.keys.down.isDown;
 };
 
-// Check if falling
+/**
+ * @method isFalling
+ * @return { Boolean }
+ */
 Player.prototype.isFalling = function() {
     return !this.isOnFloor();
 };
 
-// Check if climbing
+/**
+ * @method isClimbing
+ * @return { Boolean }
+ */
 Player.prototype.isClimbing = function() {
     return this.isTryingToClimbUp() || this.isTryingToClimbDown() || this.isTryingToClimb();
 };
 
-// Check if on ladder
+/**
+ * @method isTryingToClimb
+ * @return { Boolean }
+ */
 Player.prototype.isTryingToClimb = function() {
     return this.isOnLadder() && (this.keys.up.isDown || this.keys.down.isDown);
 };
 
-// Check if on ladder
+/**
+ * @method isTryingToClimbDown
+ * @return { Boolean }
+ */
 Player.prototype.isTryingToClimbDown = function() {
-    return this.isOnLadderTop() && this.keys.down.isDown;
+    return this.sprite.data.isOnLadderTop && this.keys.down.isDown;
 };
 
-// Check if on ladder
+/**
+ * @method isTryingToClimbUp
+ * @return { Boolean }
+ */
 Player.prototype.isTryingToClimbUp = function() {
-    return this.isOnLadderTile() && this.isOnFloor() && !this.isOnLadderTop() && this.keys.up.isDown;
+    return this.sprite.data.isOnLadderTile && this.isOnFloor() && !this.sprite.data.isOnLadderTop && this.keys.up.isDown;
 };
 
-// Check if on ladder
+/**
+ * @method isOnLadder
+ * @return { Boolean }
+ */
 Player.prototype.isOnLadder = function() {
-    return this.isOnLadderTile() && !this.isOnFloor() && !this.isOnLadderTop();
+    return this.sprite.data.isOnLadderTile && !this.isOnFloor() && !this.sprite.data.isOnLadderTop;
 };
 
-// Check if touching the floor
+/**
+ * @method isOnFloor
+ * @return { Boolean }
+ */
 Player.prototype.isOnFloor = function() {
     return this.sprite.body.onFloor();
 };
 
-// Check if ladder in range
-Player.prototype.isOnLadderTile = function() {
-    var tile = this.getOverlapTile();
-
-    if (tile && tile.index === 3 || tile.index === 9) {
-        var overlapX = Math.abs(this.sprite.position.x - tile.worldX - 8);
-
-        if (overlapX <= 8) {
-            return true;
-        }
-    }
-
-    return false;
-};
-
-// Check if ladder in range
-Player.prototype.isOnLadderTop = function() {
-    var tile = this.getTileBelow();
-    //if (tile)
-      //  console.log(tile.index);
-
-    if (tile && tile.index === 3) {
-        var overlapX = Math.abs(this.sprite.position.x - tile.worldX - 8);
-        var overlapY = Math.abs(this.sprite.position.y - tile.worldY + 16);
-        console.log(overlapY);
-
-        if (overlapX <= 8 && overlapY <= 2) {
-            return true;
-        }
-    }
-
-    return false;
-};
-
-/**
- * @method getCurrentTile
- */
-Player.prototype.getOverlapTile = function() {
-    var x = Math.floor(this.sprite.x / 16);
-    var y = Math.floor(this.sprite.y / 16);
-    
-    return this.getTile(x, y);
-};
-
-/**
- * @method getCurrentTile
- */
-Player.prototype.getTileBelowIndex = function() {
-    var tile = this.getTileBelow();
-
-    if (tile) {
-        return tile.index;
-    }
-
-    return;
-};
-
-/**
- * @method getCurrentTile
- */
-Player.prototype.getTileBelow = function() {
-    var x = Math.floor(this.sprite.x / 16);
-    var y = Math.floor(this.sprite.y / 16) + 1;
-
-    return this.getTile(x, y);
-};
-
-/**
- * @method getTile
- */
-Player.prototype.getTile = function(x, y) {
-    var map = this.sprite.game.world.children[0].map;
-
-    return map.getTile(x, y);
-};

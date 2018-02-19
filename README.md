@@ -2,9 +2,7 @@
 
 ## Introduction
 
-What is the best way of implementing ladders in a Phaser platformer?
-
-This project is an attempt to answer this question.
+Phaser platformer prototype, with ladders.
 
 https://phaser.io
 

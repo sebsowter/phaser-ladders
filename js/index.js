@@ -38,8 +38,8 @@ var PlayerState = {
 // Store in the indexes of important tiles
 var Tiles = {
     FLOOR: 2,
-    BRICK: 8,
-    LADDER: 9,
+    BRICK: 11,
+    LADDER: 12,
     LADDER_TOP: 3
 };
 

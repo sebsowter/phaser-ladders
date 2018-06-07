@@ -47,15 +47,22 @@ var Tiles = {
 };
 
 /**
- * @method initGameScale
+ * Sets the game scale and sets pixel rendering to crisp
+ * @method setGameScale
+ * @param { Phaser.Game } game
+ * @param { Number } scale
+ * @param { Boolean } isCrisp
  */
-function initGameScale(scale) {
-    this.game.scale.scaleMode = Phaser.ScaleManager.USER_SCALE;
-    this.game.scale.setUserScale(scale, scale);
-    this.game.renderer.renderSession.roundPixels = true;  
+function setGameScale(game, scale, isCrisp = true) {
+    game.scale.scaleMode = Phaser.ScaleManager.USER_SCALE;
+    game.scale.setUserScale(scale, scale);
 
-    Phaser.Canvas.setImageRenderingCrisp(this.game.canvas);
-};
+    if (isCrisp) {
+        game.renderer.renderSession.roundPixels = true;  
+
+        Phaser.Canvas.setImageRenderingCrisp(game.canvas);
+    }
+}
 
 /**
  * @method createLevel
@@ -91,7 +98,7 @@ function createLevel() {
     setCollisionJumpThrough(this.map, Tiles.JUMP_THROUGH_LEFT);
     setCollisionJumpThrough(this.map, Tiles.JUMP_THROUGH_TOP);
     setCollisionJumpThrough(this.map, Tiles.JUMP_THROUGH_RIGHT);
-};
+}
 
 /**
  * @method createPlayer
@@ -102,7 +109,7 @@ function createPlayer() {
     var sprite = this.game.add.sprite(2 * 16, 11 * 16, 'player');
 
     // Create player
-    this.player = new Player(sprite, this.keys);
+    this.player = new Player(sprite, this.keys, this.game.physics.arcade, this.layerMain);
     
     // Enable physics
     this.game.physics.enable(sprite);
@@ -111,12 +118,11 @@ function createPlayer() {
     this.player.initBody();
 
     // Set camera to follow player
-    this.game.camera.follow(sprite);
-};
+    this.game.camera.follow(this.player.getSprite());
+}
 
 /**
  * Sets a top collision for the jump through platforms
- *
  * @method setCollisionJumpThrough
  * @param { Phaser.Tilemap } map
  * @param { Number } index
@@ -131,7 +137,7 @@ function setCollisionJumpThrough(map, index) {
             }
         }
     }
-};
+}
 
 /**
  * Sets a top collision for the jump through platforms
@@ -202,7 +208,8 @@ function setLadderTiles(map, index) {
                     );
 
                     if (delta.x <= 8) {
-                        this.player.setOverlapLadder(true);
+                        sprite.data.isOnLadderTop = true;
+                        //this.player.setOverlapLadder(true);
                     }
                 };
             }
@@ -280,7 +287,7 @@ Game.prototype.init = function() {
         right: this.game.input.keyboard.addKey(Phaser.Keyboard.RIGHT)
     };
 
-    initGameScale.call(this, 2);
+    setGameScale(this.game, 2, true);
 };
 
 /**
@@ -312,11 +319,11 @@ Game.prototype.create = function() {
 Game.prototype.update = function() {
 
     // Call player preUpdate
-    this.player.preUpdate();
+    //.player.preUpdate();
 
     // Call physics overlap and collision
-    this.game.physics.arcade.overlap(this.player.sprite, this.layerMain, handleOverlap.bind(this));
-    this.game.physics.arcade.collide(this.player.sprite, this.layerMain, handleCollide.bind(this));
+    //this.game.physics.arcade.overlap(this.player.sprite, this.layerMain, handleOverlap.bind(this));
+   // this.game.physics.arcade.collide(this.player.sprite, this.layerMain, handleCollide.bind(this));
 
     // Call player update
     this.player.update();
@@ -344,7 +351,13 @@ Game.prototype.render = function() {
  * @param { Phaser.Sprite } sprite
  * @param { Object } keys
  */
-Player = function(sprite, keys) {
+Player = function(sprite, keys, physics, collisionLayer) {
+
+    // Keys
+    this.physics = physics;
+
+    // Keys
+    this.collisionLayer = collisionLayer;
 
     // Keys
     this.keys = keys;
@@ -368,7 +381,7 @@ Player = function(sprite, keys) {
     this.jumpTimer = null;
 
     // Overlapping ladder
-    this.overlapLadder = false;
+    //this.overlapLadder = false;
 
     // Sprite
     this.sprite = sprite;
@@ -376,12 +389,12 @@ Player = function(sprite, keys) {
     // Give sprite full health
     this.sprite.health = 1;
 
+    // Track whether sprite is on a ladder tile
+    this.sprite.data.isOnLadderTile = false;
+    this.sprite.data.isOnLadderTop = false;
+
     // Set anchor to center
     this.sprite.anchor.setTo(0.5, 0.5);
-
-    // Store tile overlaps in sprite data
-    //this.sprite.data.isOnLadderTop = false;
-    //this.sprite.data.isOnLadderTile = false;
 
     // Animations
     this.sprite.animations.add('stand', [0]);
@@ -397,10 +410,17 @@ Player = function(sprite, keys) {
  * @method initBody
  */
 Player.prototype.initBody = function() {
-    this.setBodySize();
+    setBodySize(this.sprite.body);
 
     this.sprite.body.bounce.y = 0;
     this.sprite.body.collideWorldBounds = true;
+};
+
+/**
+ * @method initBody
+ */
+Player.prototype.getSprite = function() {
+    return this.sprite;
 };
 
 /*
@@ -413,7 +433,6 @@ Player.prototype.initBody = function() {
  * @method preUpdate
  */
 Player.prototype.preUpdate = function() {
-    this.setOverlapLadder(false);
     this.sprite.data.isOnLadderTile = false;
     this.sprite.data.isOnLadderTop = false;
 };
@@ -422,8 +441,24 @@ Player.prototype.preUpdate = function() {
  * @method update
  */
 Player.prototype.update = function() {
+    this.preUpdate();
+    this.updateCollisions();
     this.updateState();
     this.updateVelocity();
+};
+
+
+/**
+ * @method update
+ */
+Player.prototype.updateCollisions = function() {
+
+    // Call player preUpdate
+    //this.player.preUpdate();
+
+    // Call physics overlap and collision
+    //this.game.physics.arcade.overlap(this.player.sprite, this.layerMain, handleOverlap.bind(this));
+   this.physics.collide(this.sprite, this.collisionLayer);
 };
 
 /**
@@ -564,39 +599,39 @@ Player.prototype.setState = function(state) {
 
     switch (this.state) {
         case PlayerState.FALLING:
-            this.setBodySize();
+            setBodySize(this.sprite.body);
             this.setOnLadder(false);
             this.setAnimation('fall');
             break;
         case PlayerState.STANDING:
-            this.setBodySize();
+            setBodySize(this.sprite.body);
             this.setOnLadder(false);
             this.setAnimation('stand');
             this.endJump();
             break;
         case PlayerState.JUMPING:
-            this.setBodySize();
+            setBodySize(this.sprite.body);
             this.setOnLadder(false);
             this.setAnimation('jump');
             this.startJump();
             break;
         case PlayerState.WALKING:
-            this.setBodySize();
+            setBodySize(this.sprite.body);
             this.setOnLadder(false);
             this.setAnimation('walk');
             break;
         case PlayerState.CLIMBING:
-            this.setBodySize();
+            setBodySize(this.sprite.body);
             this.setOnLadder(true);
             this.setAnimation('climb');
             break;
         case PlayerState.LADDER:
-            this.setBodySize();
+            setBodySize(this.sprite.body);
             this.setOnLadder(true);
             this.setAnimation('ladder');
             break;
         case PlayerState.CROUCHING:
-            this.setBodySize('small');
+            setBodySize(this.sprite.body, 'small');
             this.setOnLadder(false);
             this.setAnimation('crouch');
             break;
@@ -609,21 +644,21 @@ Player.prototype.setState = function(state) {
  * @method setBodySize
  * @param { String } size
  */
-Player.prototype.setBodySize = function(size = 'large') {
+function setBodySize(body, size = 'large') {
     switch (size) {
 
         // For crouching and crawling
         case 'small':
-            this.sprite.body.setSize(16, 16, 0, 16);
+            body.setSize(16, 16, 0, 16);
             break;
 
         // Default body size
         case 'large':
         default:
-            this.sprite.body.setSize(16, 24, 0, 8);
+            body.setSize(16, 24, 0, 8);
             break;
     }
-};
+}
 
 /**
  * @method setGravity
@@ -655,7 +690,7 @@ Player.prototype.setOnLadder = function(bool) {
  * @param { Boolean } bool
  */
 Player.prototype.setOverlapLadder = function(bool) {
-    this.overlapLadder = bool;
+    this.sprite.data.isOnLadderTile = bool;
 };
 
 /**
@@ -751,7 +786,7 @@ Player.prototype.isWalking = function() {
  * @return { Boolean }
  */
 Player.prototype.isJumping = function() {
-    return (this.isOnFloor() || this.overlapLadder) && this.keys.jump.isDown;
+    return (this.isOnFloor() || this.sprite.data.isOnLadderTile) && this.keys.jump.isDown;
 };
 
 /**
@@ -800,7 +835,7 @@ Player.prototype.isTryingToClimbDown = function() {
  */
 Player.prototype.isTryingToClimbUp = function() {
     //return this.sprite.data.isOnLadderTile && this.isOnFloor() && !this.sprite.data.isOnLadderTop && this.keys.up.isDown;
-    return this.overlapLadder && this.isOnFloor() && this.keys.up.isDown;
+    return this.sprite.data.isOnLadderTile && this.isOnFloor() && this.keys.up.isDown;
 };
 
 /**
@@ -808,7 +843,7 @@ Player.prototype.isTryingToClimbUp = function() {
  * @return { Boolean }
  */
 Player.prototype.isOnLadder = function() {
-    return this.overlapLadder && !this.isOnFloor();
+    return this.sprite.data.isOnLadderTile && !this.isOnFloor();
 };
 
 /**

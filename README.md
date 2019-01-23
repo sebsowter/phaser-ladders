@@ -26,14 +26,14 @@ python -m SimpleHTTPServer 9000
 
 See index.js for implementation.
 
-https://github.com/SebEynott/phaser-ladders/blob/master/js/index.js
+https://github.com/sebsowter/phaser-ladders/blob/master/js/index.js
 
-## Demo
+## Demo 
 
-https://sebeynott.github.io/phaser-ladders/
+https://sebsowter.github.io/phaser-ladders/
 
 Move: Arrow keys  
 Jump: W
 
-!['phaser-ladders'](https://sebeynott.github.io/phaser-ladders/images/screen.gif)
+!['phaser-ladders'](https://sebsowter.github.io/phaser-ladders/images/screen.gif)
 

@@ -43,5 +43,5 @@ https://sebsowter.github.io/phaser-ladders/
 Move: Arrow keys  
 Jump: W
 
-![phaser-ladders](https://sebsowter.github.io/phaser-ladders/images/screen.gif)
+[phaser-ladders](https://sebsowter.github.io/phaser-ladders/images/screen.gif)
 

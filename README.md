@@ -2,9 +2,7 @@
 
 ## Introduction
 
-Phaser platformer prototype, with ladders.
-
-https://phaser.io
+[Phaser](https://phaser.io) platformer prototype, with ladders.
 
 ## Installation
 
@@ -12,9 +10,9 @@ To run the project locally you will need to run a local server.
 
 I recommend using Node.js http-server.
 
-1. Download and install ['Node.js'](https://nodejs.org).
+1. Download and install [Node.js](https://nodejs.org).
 
-2. Open Terminal (Mac) or Command Prompt (PC) and install ['http-server'](https://www.npmjs.com/package/http-server).
+2. Open Terminal (Mac) or Command Prompt (PC) and install [http-server](https://www.npmjs.com/package/http-server).
 
 ```
 npm install http-server -g
@@ -45,5 +43,5 @@ https://sebsowter.github.io/phaser-ladders/
 Move: Arrow keys  
 Jump: W
 
-!['phaser-ladders'](https://sebsowter.github.io/phaser-ladders/images/screen.gif)
+![phaser-ladders](https://sebsowter.github.io/phaser-ladders/images/screen.gif)
 
